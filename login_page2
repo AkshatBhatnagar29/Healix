@@ -1,0 +1,295 @@
+import 'package:flutter/material.dart';
+
+// Enum to represent the user roles
+enum UserRole {
+  student,
+  doctor,
+  staff,
+}
+
+// Define the primary color for the Healix brand (a calming teal)
+const Color kPrimaryColor = Color(0xFF4DB6AC); // A nice, healing-themed teal
+
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  UserRole _selectedRole = UserRole.student;
+  final TextEditingController _idController = TextEditingController();
+
+  // Helper function to return the correct label text based on the selected role
+  String _getIdLabel() {
+    switch (_selectedRole) {
+      case UserRole.student:
+      // Changed to Roll Number/Student Email
+        return 'Roll Number / Student Email';
+      case UserRole.doctor:
+      // Remains Doctor ID / Doctor Email
+        return 'Doctor ID / Doctor Email';
+      case UserRole.staff:
+      // Changed to Staff ID / Staff Email
+        return 'Staff ID / Staff Email';
+    }
+  }
+
+  // Function to build the selectable role card
+  Widget _buildRoleCard({
+    required UserRole role,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+  }) {
+    final bool isSelected = _selectedRole == role;
+
+    return Card(
+      elevation: isSelected ? 8 : 2, // Elevated shadow when selected
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: isSelected
+            ? const BorderSide(color: kPrimaryColor, width: 3) // Primary color border when selected
+            : BorderSide.none,
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedRole = role;
+            // Clear the input field when the role changes, as the required ID format might change
+            _idController.clear();
+          });
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              // Icon for the role
+              Icon(icon, color: isSelected ? kPrimaryColor : Colors.grey[600], size: 28),
+              const SizedBox(width: 16),
+              // Text content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected ? Colors.black : Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Selection Indicator (Radio dot style)
+              Icon(
+                isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                color: isSelected ? kPrimaryColor : Colors.grey[400],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Placeholder function for the sign-in logic
+  void _handleSignIn() {
+    String roleName = _selectedRole.toString().split('.').last;
+    String id = _idController.text.trim();
+
+    // Simple validation check
+    if (id.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your credentials to sign in.')),
+      );
+      return;
+    }
+
+    // Replace this print with your actual authentication logic
+    print('Attempting to sign in as: $roleName with ID: $id');
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Sign In attempted for $roleName with ID $id')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Determine the max width for the login card for responsive design
+    final screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 600;
+
+    // Constrain the login box width
+    final double containerWidth = isMobile ? screenWidth * 0.9 : 450;
+
+    return Scaffold(
+      // Set a light background color for a fresh look
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: 40.0),
+          child: Container(
+            width: containerWidth,
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  spreadRadius: 5,
+                  blurRadius: 10,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 1. App Logo and Title
+                CircleAvatar(
+                  radius: 40,
+                  backgroundColor: kPrimaryColor.withOpacity(0.1),
+                  child: const Icon(Icons.medical_services_outlined, color: kPrimaryColor, size: 40),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Healix', // Updated App Name
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Secure access to campus healthcare',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // 2. Select Role Section
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Select your role',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Role Selection Cards
+                _buildRoleCard(
+                  role: UserRole.student,
+                  title: 'Student (Patient)',
+                  subtitle: 'Access medical services, book appointments, view reports.',
+                  icon: Icons.person_outline,
+                ),
+                _buildRoleCard(
+                  role: UserRole.doctor,
+                  title: 'Doctor',
+                  subtitle: 'Manage appointments, create prescriptions, view patient records.',
+                  icon: Icons.local_hospital_outlined,
+                ),
+                _buildRoleCard(
+                  role: UserRole.staff,
+                  title: 'Staff',
+                  subtitle: 'Pharmacy, Lab, or Administrative access.',
+                  icon: Icons.business_center_outlined,
+                ),
+
+                const SizedBox(height: 32),
+
+                // 3. ID Input Field
+                TextFormField(
+                  controller: _idController,
+                  // The keyboard type remains text to allow for IDs and email addresses
+                  keyboardType: TextInputType.text,
+                  decoration: InputDecoration(
+                    // === DYNAMIC TEXT IMPLEMENTATION HERE ===
+                    labelText: _getIdLabel(),
+                    hintText: 'Enter ${_getIdLabel()}',
+                    // ========================================
+                    prefixIcon: const Icon(Icons.badge, color: kPrimaryColor),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // 4. Sign In Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: _handleSignIn,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kPrimaryColor, // Use the brand color
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 4,
+                    ),
+                    child: const Text(
+                      'Sign In',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+
+                // 5. Help / Footer Section
+                Column(
+                  children: [
+                    const Text(
+                      'Need help? Contact IT Support',
+                      style: TextStyle(fontSize: 14, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () {
+                        // Action to open mail client or contact info
+                      },
+                      child: const Text(
+                        'ext. 2500 | support@healix.edu',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: kPrimaryColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
