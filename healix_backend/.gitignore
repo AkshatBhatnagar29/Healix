@@ -1,0 +1,8 @@
+.env
+healv
+en.db
+__pycache__/
+instance/
+*.pyc
+*.pyo
+*.pyd
