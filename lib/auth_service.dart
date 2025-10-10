@@ -4,7 +4,7 @@ import 'dart:convert';
 
 class AuthService {
   final _storage = const FlutterSecureStorage();
-  final String _baseUrl = "http://192.168.185.226:8000/api"; // Your IP address
+  final String _baseUrl = "http://172.16.213.90:8000/api"; // Your IP address
 
   Future<void> _storeTokens(String accessToken, String refreshToken) async {
     await _storage.write(key: 'access_token', value: accessToken);

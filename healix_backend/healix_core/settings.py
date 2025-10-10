@@ -15,7 +15,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = True
 # healix_core/settings.py
 
-ALLOWED_HOSTS = ['127.0.0.1', '10.0.2.2','192.168.185.226','172.16.216.107']
+ALLOWED_HOSTS = ['127.0.0.1', '10.0.2.2','192.168.185.226','172.16.216.107','172.16.213.90']
 
 
 # Application definition
@@ -97,10 +97,10 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 # healix_core/settings.py
 # ...
-DEFAULT_FROM_EMAIL = os.getenv('EMAIL_HOST_USER')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_SENDER_EMAIL')
 
 # Password validation
-AUTH_PASSWORD_VALIDATORS = [ ... ] # Default validators
+AUTH_PASSWORD_VALIDATORS = [ ] # Default validators
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
