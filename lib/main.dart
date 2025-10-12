@@ -63,7 +63,7 @@ class _AuthCheckState extends State<AuthCheck> {
         }
 
         // Otherwise, show the login page
-        return const LoginPage();
+        return LoginPage();
       },
     );
   }
