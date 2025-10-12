@@ -1,7 +1,8 @@
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-
+from decouple import config, Csv
+import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -9,13 +10,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 # healix_core/settings.py
 
-ALLOWED_HOSTS = ['127.0.0.1', '10.0.2.2','192.168.185.226','172.16.216.107','172.16.213.90']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
 
 
 # Application definition
@@ -68,14 +69,9 @@ WSGI_APPLICATION = 'healix_core.wsgi.application'
 # This block tells Django how to connect to your PostgreSQL server
 # using the credentials stored securely in your .env file.
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
-    }
+    'default': dj_database_url.config(
+        default=f"postgres://{config('DB_USER')}:{config('DB_PASSWORD')}@{config('DB_HOST')}:{config('DB_PORT')}/{config('DB_NAME')}"
+    )
 }
 # --- END OF DATABASE CONFIGURATION ---
 
@@ -89,12 +85,15 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
 }
+# settings.py
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp-relay.brevo.com'
+EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+EMAIL_HOST_USER = 'sakshamsingh0601@gmail.com'          # Your full Gmail address
+EMAIL_HOST_PASSWORD = 'jpjj hvzh gpdb uxnr' # The App Password you generated
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 # healix_core/settings.py
 # ...
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_SENDER_EMAIL')
@@ -108,6 +107,8 @@ USE_TZ = True
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOW_ALL_ORIGINS = True
+
+AUTH_USER_MODEL = 'api.User'
 # ### Why is `db.sqlite3` in the `.gitignore` file?
 
 # This is an excellent question. The `.gitignore` file you have is a standard template for Django projects. It includes `db.sqlite3` as a preventative measure.

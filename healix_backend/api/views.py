@@ -76,6 +76,38 @@ import random
 from datetime import timedelta
 from django.conf import settings
 
+from django.contrib.auth import authenticate
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+
+@api_view(['POST'])
+def login_view(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    # This is the crucial part
+    user = authenticate(username=username, password=password)
+
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    print(f"--- Backend Received ---")
+    print(f"Username: '{username}'")
+    print(f"Password: '{password}'")
+    print(f"------------------------")
+
+    user = authenticate(username=username, password=password)
+
+    if user is not None:
+        # User is valid, active, and password is correct
+        # You would generate and return a token here
+        return Response({'message': 'Login Successful!'}, status=status.HTTP_200_OK)
+    else:
+        # Authentication failed
+        return Response({'error': 'Invalid Credentials'}, status=status.HTTP_400_BAD_REQUEST)
+
+
 # --- Helper function to generate and send OTP ---
 def send_otp_email(user):
     # Generate 6-digit OTP
