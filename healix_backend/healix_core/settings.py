@@ -1,43 +1,83 @@
+"""
+Django settings for healix_core project.(Production-ready with security and performance optimizations.)
+"""
+"""
 from pathlib import Path
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 from decouple import config, Csv
 import dj_database_url
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load Environment Variables from the .env file in your project root
+# ------------------------------------------------------------
+# BASE CONFIGURATION
+# ------------------------------------------------------------
+BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
-
-# SECURITY WARNING: don't run with debug turned on in production!
+SECRET_KEY = config('SECRET_KEY', default='your-secret-key')
 DEBUG = config('DEBUG', default=False, cast=bool)
-# healix_core/settings.py
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
+# ------------------------------------------------------------
+# HOST CONFIGURATION
+# ------------------------------------------------------------
+ALLOWED_HOSTS = ['healixind.xyz', 'www.healixind.xyz','10.0.0.2']
+RENDER_EXTERNAL_HOSTNAME = config('RENDER_EXTERNAL_HOSTNAME', default=None)
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+ALLOWED_HOSTS.extend(config('ALLOWED_HOSTS', default='', cast=Csv()))
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://healixind.xyz',
+    'https://www.healixind.xyz',
+    'https://healix-backend-goc4.onrender.com',
+]
+if RENDER_EXTERNAL_HOSTNAME:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_EXTERNAL_HOSTNAME}')
 
-# Application definition
+# ------------------------------------------------------------
+# APPLICATIONS
+# ------------------------------------------------------------
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
+
     # Third-party apps
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
-    # Your apps
+
+    # Local apps
     'api',
 ]
 
-# ... (Middleware, ROOT_URLCONF, TEMPLATES remain the same) ...
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],  # optional, for custom templates
+        'APP_DIRS': True,  # looks for templates inside each app's "templates" folder
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',  # required by admin
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+# ------------------------------------------------------------
+# MIDDLEWARE
+# ------------------------------------------------------------
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -46,96 +86,294 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# ------------------------------------------------------------
+# URLS & WSGI
+# ------------------------------------------------------------
 ROOT_URLCONF = 'healix_core.urls'
+WSGI_APPLICATION = 'healix_core.wsgi.application'
+
+# ------------------------------------------------------------
+# DATABASE CONFIGURATION
+# ------------------------------------------------------------
+DATABASES = {
+    'default': dj_database_url.config(
+        default=f'sqlite:///{os.path.join(BASE_DIR, "db.sqlite3")}',
+        conn_max_age=600
+    )
+}
+
+# ------------------------------------------------------------
+# AUTHENTICATION & REST FRAMEWORK
+# ------------------------------------------------------------
+AUTH_USER_MODEL = 'api.User'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.AllowAny',
+    ),
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+}
+
+# ------------------------------------------------------------
+# STATIC & MEDIA FILES
+# ------------------------------------------------------------
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ------------------------------------------------------------
+# CORS SETTINGS
+# ------------------------------------------------------------
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+ 
+# ------------------------------------------------------------
+# EMAIL CONFIGURATION — USING RES
+# ------------------------------------------------------------
+RESEND_API_KEY = config('RESEND_API_KEY', default='')
+
+# The sender email must be verified in Resend
+DEFAULT_FROM_EMAIL = 'Healix <no-reply@healixind.xyz>'
+
+# ------------------------------------------------------------
+# SECURITY SETTINGS (Recommended for Production)
+# ------------------------------------------------------------
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# ------------------------------------------------------------
+# LOGGING (Optional - helps debug Render issues)
+# ------------------------------------------------------------
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+}
+
+"""
+
+
+"""
+Django code for Development phase.
+"""
+
+
+# """
+from pathlib import Path
+import os
+from datetime import timedelta
+from dotenv import load_dotenv
+from decouple import config, Csv
+import dj_database_url
+from django_redis import get_redis_connection
+# ------------------------------------------------------------
+# BASE CONFIGURATION
+# ------------------------------------------------------------
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1")
+
+SECRET_KEY = os.getenv('SECRET_KEY', default='your-secret-key')
+DEBUG = config('DEBUG', default=True, cast=bool)
+
+# ------------------------------------------------------------
+# HOST CONFIGURATION
+# ------------------------------------------------------------
+ALLOWED_HOSTS = ['healixind.xyz', 'www.healixind.xyz','10.0.2.2','localhost','127.0.0.1','0.0.0.0','192.168.29.196']
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://10.0.2.2:8000',
+    'http://127.0.0.1:8000',
+    'http://0.0.0.0:8000',
+    'http://192.168.29.196:8000'
+]
+
+
+# ------------------------------------------------------------
+# APPLICATIONS
+# ------------------------------------------------------------
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'whitenoise.runserver_nostatic',
+    'django.contrib.staticfiles',
+
+    # Third-party apps
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
+
+    # Local apps
+    'api',
+]
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],  # optional, for custom templates
+        'APP_DIRS': True,  # looks for templates inside each app's "templates" folder
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
-                'django.template.context_processors.request',
+                'django.template.context_processors.request',  # required by admin
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
         },
     },
 ]
+
+# ------------------------------------------------------------
+# MIDDLEWARE
+# ------------------------------------------------------------
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+# ------------------------------------------------------------
+# URLS & WSGI
+# ------------------------------------------------------------
+ROOT_URLCONF = 'healix_core.urls'
 WSGI_APPLICATION = 'healix_core.wsgi.application'
 
-
-# --- DATABASE CONFIGURATION FOR POSTGRESQL ---
-# This block tells Django how to connect to your PostgreSQL server
-# using the credentials stored securely in your .env file.
+# ------------------------------------------------------------
+# DATABASE CONFIGURATION
+# ------------------------------------------------------------
+# ------------------------------------------------------------
+# DATABASE CONFIGURATION
+# ------------------------------------------------------------
 DATABASES = {
-    'default': dj_database_url.config(
-        default=f"postgres://{config('DB_USER')}:{config('DB_PASSWORD')}@{config('DB_HOST')}:{config('DB_PORT')}/{config('DB_NAME')}"
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST', default='localhost'),
+        'PORT': config('DB_PORT', default='5432'),
+    }
 }
-# --- END OF DATABASE CONFIGURATION ---
 
 
-# Point to your custom User model
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,  # Using database 1
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+# ------------------------------------------------------------
+# AUTHENTICATION & REST FRAMEWORK
+# ------------------------------------------------------------
 AUTH_USER_MODEL = 'api.User'
 
-# ... (REST_FRAMEWORK, EMAIL, and other settings remain the same) ...
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.AllowAny',
+    ),
 }
-# settings.py
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'sakshamsingh0601@gmail.com'          # Your full Gmail address
-EMAIL_HOST_PASSWORD = 'jpjj hvzh gpdb uxnr' # The App Password you generated
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-# healix_core/settings.py
-# ...
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_SENDER_EMAIL')
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+}
 
-# Password validation
-AUTH_PASSWORD_VALIDATORS = [ ] # Default validators
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
-USE_I18N = True
-USE_TZ = True
-STATIC_URL = 'static/'
+# ------------------------------------------------------------
+# STATIC & MEDIA FILES
+# ------------------------------------------------------------
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ------------------------------------------------------------
+# CORS SETTINGS
+# ------------------------------------------------------------
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+ 
+# ------------------------------------------------------------
+# EMAIL CONFIGURATION — USING RES
+# ------------------------------------------------------------
+RESEND_API_KEY = config('RESEND_API_KEY', default='')
 
-AUTH_USER_MODEL = 'api.User'
-# ### Why is `db.sqlite3` in the `.gitignore` file?
+# The sender email must be verified in Resend
+DEFAULT_FROM_EMAIL = 'Healix <no-reply@healixind.xyz>'
 
-# This is an excellent question. The `.gitignore` file you have is a standard template for Django projects. It includes `db.sqlite3` as a preventative measure.
+# ------------------------------------------------------------
+# SECURITY SETTINGS (Recommended for Production)
+# ------------------------------------------------------------
+SECURE_HSTS_SECONDS = 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SECURE_BROWSER_XSS_FILTER = False
+SECURE_CONTENT_TYPE_NOSNIFF = False
+SECURE_PROXY_SSL_HEADER = None
 
-# Even though your project is configured for PostgreSQL, if you ever ran a command like `python manage.py migrate` *before* your PostgreSQL settings were perfectly configured, Django would have created a `db.sqlite3` file by default as a fallback.
 
-# Including it in `.gitignore` simply ensures that this temporary, local-only database file is **never accidentally committed** to your GitHub repository. It's a best practice that keeps your repository clean, regardless of which database you are using for development or production.
-
-# ### How to Make it Work: A Clear Checklist
-
-# 1.  **Install the PostgreSQL Driver:** Make sure your Python environment has the necessary package to talk to PostgreSQL.
-#     ```bash
-#     pip install psycopg2-binary
-#     ```
-# 2.  **Fill in `.env`:** Ensure your `.env` file in the project root has the correct credentials for your PostgreSQL server.
-#     ```ini
-#     # .env file
-#     DB_NAME='healix_db'
-#     DB_USER='your_postgres_user'
-#     DB_PASSWORD='your_postgres_password'
-#     DB_HOST='localhost'
-#     DB_PORT='5432'
-#     ```
-# 3.  **Update `settings.py`:** Replace the entire contents of your `healix_core/settings.py` with the corrected code provided above.
-# 4.  **Run Migrations:** Now, you can apply your table schema to the PostgreSQL database.
-#     ```bash
-#     python manage.py makemigrations
-#     python manage.py migrate
-    
-
+# ------------------------------------------------------------
+# LOGGING (Optional - helps debug Render issues)
+# ------------------------------------------------------------
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+}
+# """

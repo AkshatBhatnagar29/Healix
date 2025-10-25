@@ -8,6 +8,8 @@ import 'package:healix/doctor_dashboard.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+// import 'package:shared_preferences/shared_preferences.dart';
+import 'package:healix/auth_service.dart';
 
 // Placeholder for Staff Homepage
 class StaffHomepage extends StatelessWidget {
@@ -40,6 +42,8 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // Sign-in logic
+  final AuthService _authService = AuthService();
+
   void _signIn() async {
     if (idController.text.isEmpty || passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -50,8 +54,8 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => _isLoading = true);
 
-    final username = idController.text;
-    final password = passwordController.text;
+    final username = idController.text.trim();
+    final password = passwordController.text.trim();
 
     print("--- Frontend Sending ---");
     print("Username: '$username'");
@@ -59,60 +63,49 @@ class _LoginPageState extends State<LoginPage> {
     print("----------------------");
 
     try {
-      // --- THIS IS THE REAL NETWORK REQUEST ---
-      final response = await http.post(
-        Uri.parse('http://127.0.0.1:8000/api/login/'), // Your Django login URL
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, String>{
-          'username': username,
-          'password': password,
-        }),
-      );
+      final result = await _authService.login(username, password);
 
-      // --- HANDLE THE RESPONSE ---
-      if (response.statusCode == 200) {
-        // Login successful!
-        // In a real app, you would save the token from the response
-        // final data = jsonDecode(response.body);
-        // final token = data['access'];
+      if (result['success'] == true) {
+        final role = result['role'] ?? 'unknown';
+        print("[DEBUG] Login successful with role: $role");
 
-        // Navigate to the correct dashboard based on role
-        switch (selectedRole) {
+        // Navigate based on role
+        switch (role) {
+          case 'student':
           case 'Student (Patient)':
-            Navigator.push(context, MaterialPageRoute(builder: (context) => StudentHomepage(studentId: idController.text)));
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => StudentHomepage(studentId: username)));
             break;
+          case 'doctor':
           case 'Doctor':
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const DoctorDashboardScreen()));
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const DoctorDashboardScreen()));
             break;
+          case 'staff':
           case 'Staff':
-            Navigator.push(context, MaterialPageRoute(builder: (context) => StaffHomepage(staffId: idController.text)));
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => StaffHomepage(staffId: username)));
             break;
+          default:
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Unknown role: $role')),
+            );
         }
       } else {
-        // Login failed, show an error
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invalid credentials. Please try again.'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Login failed: ${result['message']}')),
         );
       }
     } catch (e) {
-      // Handle network errors (e.g., server is down)
-      print("Error during login: $e");
+      print("[ERROR] Login exception: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Could not connect to the server. Please check your connection.'),
+          content: Text('Could not connect to the server. Please try again later.'),
           backgroundColor: Colors.red,
         ),
       );
     } finally {
-      // Stop the loading indicator
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

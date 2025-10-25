@@ -1,71 +1,235 @@
+# from rest_framework import serializers
+# from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+# from .models import User, StudentProfile, DoctorProfile
+
+# # --- Serializer for User Signup ---
+# class UserSerializer(serializers.ModelSerializer):
+#     # We add a write_only full_name field to accept it from the frontend
+#     full_name = serializers.CharField(write_only=True)
+
+#     class Meta:
+#         model = User
+#         # The fields now reflect the database schema: first_name and last_name
+#         fields = ['id', 'username', 'email', 'password', 'role', 'full_name', 'first_name', 'last_name']
+#         extra_kwargs = {
+#             'password': {'write_only': True},
+#             # Make first_name and last_name read-only as we will set them in the create method
+#             'first_name': {'read_only': True},
+#             'last_name': {'read_only': True},
+#         }
+
+#     def create(self, validated_data):
+#         # This method is called when a new user signs up
+        
+#         # Split the incoming full_name into first and last names
+#         full_name = validated_data.get('full_name', '')
+#         first_name = full_name.split(' ')[0]
+#         last_name = ' '.join(full_name.split(' ')[1:]) if ' ' in full_name else ''
+
+#         # Create the main User object using the correct fields
+#         user = User.objects.create_user(
+#             username=validated_data['username'],
+#             email=validated_data['email'],
+#             password=validated_data['password'],
+#             first_name=first_name, # Use the split first_name
+#             last_name=last_name,   # Use the split last_name
+#             role=validated_data['role'],
+#             is_active=False # User is inactive until their email is verified
+#         )
+
+#         # Now, create the corresponding profile based on the selected role
+#         if validated_data['role'] == 'student':
+#             # For a student, the username (Student ID) is used as the roll number
+#             StudentProfile.objects.create(user=user, roll_number=user.username)
+#         elif validated_data['role'] == 'doctor':
+#             DoctorProfile.objects.create(user=user)
+#         # Add a similar block for 'staff' if you create a StaffProfile model
+
+#         return user
+
+# # --- Serializer for Secure Login ---
+# class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+#     @classmethod
+#     def get_token(cls, user):
+#         token = super().get_token(user)
+#         # Add custom claims to the token (data you want to be easily accessible on the frontend)
+#         token['username'] = user.username
+#         token['role'] = user.role
+#         return token
+
+#     def validate(self, attrs):
+#         # Default validation first
+#         data = super().validate(attrs)
+        
+#         # Add our custom security check
+#         if not self.user.is_email_verified:
+#             raise serializers.ValidationError({
+#                 'detail': 'Email not verified. Please check your email for an OTP to activate your account.'
+#             })
+            
+#         return data
+
+
+
+
+
+
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import User, StudentProfile, DoctorProfile
+from .models import User, StudentProfile, DoctorProfile, StaffProfile, SOSAlert,Hostel
+from rest_framework.exceptions import ValidationError # <-- 1. ADD THIS IMPORT
 
+# --- NEW: Serializer for Student Profile ---
+# class StudentProfileSerializer(serializers.ModelSerializer):
+#     # These fields come from the related User model
+#     name = serializers.CharField(source='user.name', read_only=True)
+#     username = serializers.CharField(source='user.username', read_only=True)
+#     email = serializers.EmailField(source='user.email', read_only=True)
+
+#     class Meta:
+#         model = StudentProfile
+#         fields = [
+#             'roll_number',
+#             'name',        # from User
+#             'username',    # from User
+#             'email',       # from User
+#             'date_of_birth',
+#             'allergies',
+#             'bmi',
+#             'water_intake',
+#             'sleep_hours',
+#             'hostel_id'
+#         ]
+#         read_only_fields = ['roll_number', 'name', 'username', 'email']
+class StudentProfileSerializer(serializers.ModelSerializer):
+    # These fields are for READ-ONLY display
+    name = serializers.CharField(source='user.get_full_name', read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True)
+
+    # This field will be used for both READING and WRITING the hostel.
+    # For READING: it will return the 'name' of the related hostel object.
+    # For WRITING: it will accept a string (the hostel's name).
+    hostel_name = serializers.CharField(source='hostel.name', allow_null=True, required=False)
+
+    class Meta:
+        model = StudentProfile
+        fields = [
+            'roll_number',
+            'name',
+            'username',
+            'email',
+            'date_of_birth',
+            'allergies',
+            'bmi',
+            'water_intake',
+            'sleep_hours',
+            'hostel_name'  # <-- Use this field instead of hostel_id
+        ]
+        read_only_fields = ['roll_number', 'name', 'username', 'email']
+
+    def update(self, instance, validated_data):
+        # We need to manually handle the 'hostel_name' field.
+        # Because of 'source="hostel.name"', DRF puts the data 
+        # inside 'validated_data' as a dictionary: {'hostel': {'name': '...'}}
+        
+        hostel_data = validated_data.pop('hostel', None)
+        
+        if hostel_data is not None:
+            # hostel_data will be a dict like {'name': 'BH-5'}
+            hostel_name = hostel_data.get('name')
+            if hostel_name:
+                try:
+                    # Find the hostel by its name (case-insensitive)
+                    hostel_obj = Hostel.objects.get(name__iexact=hostel_name)
+                    instance.hostel = hostel_obj
+                except Hostel.DoesNotExist:
+                    # If the name is invalid, set hostel to None
+                    instance.hostel = None
+                    # Optionally, you could raise an error to inform the user
+                    # raise serializers.ValidationError({"hostel_name": "Hostel not found."})
+            else:
+                # If name is '' or null, set hostel to None
+                instance.hostel = None
+        
+        # Update all other fields normally
+        # (This handles 'date_of_birth', 'allergies', 'bmi', etc.)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        instance.save()
+        return instance
 # --- Serializer for User Signup ---
 class UserSerializer(serializers.ModelSerializer):
-    # We add a write_only full_name field to accept it from the frontend
     full_name = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
-        # The fields now reflect the database schema: first_name and last_name
         fields = ['id', 'username', 'email', 'password', 'role', 'full_name', 'first_name', 'last_name']
         extra_kwargs = {
             'password': {'write_only': True},
-            # Make first_name and last_name read-only as we will set them in the create method
             'first_name': {'read_only': True},
             'last_name': {'read_only': True},
         }
 
     def create(self, validated_data):
-        # This method is called when a new user signs up
-        
-        # Split the incoming full_name into first and last names
         full_name = validated_data.get('full_name', '')
         first_name = full_name.split(' ')[0]
         last_name = ' '.join(full_name.split(' ')[1:]) if ' ' in full_name else ''
 
-        # Create the main User object using the correct fields
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password'],
-            first_name=first_name, # Use the split first_name
-            last_name=last_name,   # Use the split last_name
+            first_name=first_name,
+            last_name=last_name,
             role=validated_data['role'],
-            is_active=False # User is inactive until their email is verified
+            is_active=False
         )
 
-        # Now, create the corresponding profile based on the selected role
-        if validated_data['role'] == 'student':
-            # For a student, the username (Student ID) is used as the roll number
+        role = validated_data['role']
+        if role == 'student':
             StudentProfile.objects.create(user=user, roll_number=user.username)
-        elif validated_data['role'] == 'doctor':
+        elif role == 'doctor':
             DoctorProfile.objects.create(user=user)
-        # Add a similar block for 'staff' if you create a StaffProfile model
+        elif role == 'staff':
+            StaffProfile.objects.create(user=user, employee_id=user.username)
 
         return user
+
+# --- SOS Alert Serializer (NEW) ---
+# This serializer is designed to give the frontend all the info it needs in one call.
+class SOSAlertSerializer(serializers.ModelSerializer):
+    student_name = serializers.CharField(source='student.get_full_name', read_only=True)
+    student_roll_number = serializers.CharField(source='student.student_profile.roll_number', read_only=True)
+    hostel_name = serializers.CharField(source='student.student_profile.hostel.name', read_only=True)
+    hostel_id = serializers.CharField(source='student.student_profile.hostel.id', read_only=True)
+    caretaker_name = serializers.CharField(source='student.student_profile.hostel.caretaker.get_full_name', read_only=True)
+    caretaker_phone = serializers.CharField(source='student.student_profile.hostel.caretaker.staff_profile.phone_number', read_only=True)
+    acknowledged_by_name = serializers.CharField(source='acknowledged_by.get_full_name', read_only=True)
+    caretaker_id = serializers.CharField(source='student.student_profile.hostel.caretaker.username', read_only=True)
+    class Meta:
+        model = SOSAlert
+        fields = [
+            'id', 'status', 'alert_time', 'location_info',
+            'student_name', 'student_roll_number','hostel_name', 'hostel_id',
+            'caretaker_name', 'caretaker_phone', 'acknowledged_by_name','caretaker_id'
+        ]
 
 # --- Serializer for Secure Login ---
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        # Add custom claims to the token (data you want to be easily accessible on the frontend)
+        # Add custom claims
         token['username'] = user.username
-        token['role'] = user.role
+        token['role'] = user.role # This is crucial for role-based navigation on the frontend
         return token
 
     def validate(self, attrs):
-        # Default validation first
         data = super().validate(attrs)
-        
-        # Add our custom security check
         if not self.user.is_email_verified:
             raise serializers.ValidationError({
-                'detail': 'Email not verified. Please check your email for an OTP to activate your account.'
+                'detail': 'Email not verified. Please check your email for an OTP.'
             })
-            
         return data
-

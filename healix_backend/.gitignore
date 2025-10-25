@@ -6,3 +6,4 @@ instance/
 *.pyc
 *.pyo
 *.pyd
+env

@@ -163,7 +163,7 @@ class _SignupPageState extends State<SignupPage> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
-
+print("signup happening");
     try {
       final result = await _authService.signup(
         _idController.text,
@@ -172,7 +172,7 @@ class _SignupPageState extends State<SignupPage> {
         _selectedRole.toLowerCase(),
         _nameController.text,
       );
-
+print(_idController.text);
       if (mounted) {
         if (result['success']) {
           ScaffoldMessenger.of(context).showSnackBar(
