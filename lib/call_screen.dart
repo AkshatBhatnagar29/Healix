@@ -1,76 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:healix/webrtc_circuit.dart';
 
-class CallScreen extends StatefulWidget {
-  final String targetId;
-  final RTCVideoRenderer localRenderer;
-  final RTCVideoRenderer remoteRenderer;
-  final VoidCallback onHangUp;
-
-  const CallScreen({
-    super.key,
-    required this.targetId,
-    required this.localRenderer,
-    required this.remoteRenderer,
-    required this.onHangUp,
-  });
-
-  @override
-  State<CallScreen> createState() => _CallScreenState();
-}
-
-class _CallScreenState extends State<CallScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // Initialize the renderers to start showing video/audio
-    widget.localRenderer.initialize();
-    widget.remoteRenderer.initialize();
-  }
-
-  @override
-  void dispose() {
-    widget.localRenderer.dispose();
-    widget.remoteRenderer.dispose();
-    super.dispose();
-  }
+class StudentCallScreen extends StatelessWidget {
+  final WebRTCService webRTCService;
+  const StudentCallScreen({super.key, required this.webRTCService});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text("Call in Progress"),
+        backgroundColor: Colors.red,
+        automaticallyImplyLeading: false, // Don't show back button
+      ),
       body: Stack(
-        children: <Widget>[
-          // The remote user's video will fill the screen
+        children: [
+          // Remote Video (Caretaker)
           Positioned.fill(
-            child: RTCVideoView(widget.remoteRenderer, mirror: true),
-          ),
-          // The local user's video appears as a small overlay
-          Positioned(
-            left: 20.0,
-            top: 40.0,
-            child: SizedBox(
-              width: 100.0,
-              height: 150.0,
-              child: RTCVideoView(widget.localRenderer, mirror: true),
+            child: Container(
+              color: Colors.black,
+              child: RTCVideoView(webRTCService.remoteRenderer,
+                  objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover),
             ),
           ),
-          // Hang-up button at the bottom
+          // Local Video (Student)
           Positioned(
-            bottom: 30.0,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                FloatingActionButton(
-                  onPressed: widget.onHangUp,
-                  backgroundColor: Colors.red,
-                  child: const Icon(Icons.call_end, color: Colors.white),
-                ),
-              ],
+            right: 20,
+            top: 20,
+            width: 120,
+            height: 160,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8.0),
+              child: Container(
+                color: Colors.black45,
+                child: RTCVideoView(webRTCService.localRenderer,
+                    mirror: true,
+                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover),
+              ),
             ),
           ),
         ],
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          webRTCService.hangUp();
+          Navigator.of(context).pop(); // Go back to student homepage
+        },
+        backgroundColor: Colors.red,
+        child: const Icon(Icons.call_end, color: Colors.white),
       ),
     );
   }

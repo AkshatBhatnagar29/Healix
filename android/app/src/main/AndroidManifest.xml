@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.healix">
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
 
+    <!-- These are also highly recommended for WebRTC -->
+<!--    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />-->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- ✅ Internet permission -->
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -9,7 +17,7 @@
         android:name="${applicationName}"
         android:label="healix"
         android:icon="@mipmap/launcher_icon"
-        android:usesCleartextTraffic="false">
+        android:usesCleartextTraffic="True">
 
         <activity
             android:name=".MainActivity"

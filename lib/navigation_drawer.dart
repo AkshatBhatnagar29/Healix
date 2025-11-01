@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:healix/appointments_list_screen.dart';
 import 'package:healix/patient_records_screen.dart'; // Import the new screen
 import 'package:healix/prescriptions_screen.dart';
-import 'package:healix/profile_screen.dart';
+import 'package:healix/profile_screen.dart'; // <-- This file should contain your DoctorProfileScreen class
 
 class AppNavigationDrawer extends StatefulWidget {
   const AppNavigationDrawer({super.key});
@@ -40,9 +40,13 @@ class _AppNavigationDrawerState extends State<AppNavigationDrawer> {
         ));
         break;
       case 5: // Profile
+      // --- MODIFIED ---
         Navigator.of(context).push(MaterialPageRoute(
-          builder: (context) => const ProfileScreen(),
+          // 1. Use the correct class name
+          // 2. Remove 'const'
+          builder: (context) => DoctorProfileScreen(),
         ));
+        // --- END MODIFICATION ---
         break;
     // You can add cases for other items like Lab Requests here
     }
@@ -130,4 +134,3 @@ class _AppNavigationDrawerState extends State<AppNavigationDrawer> {
     );
   }
 }
-

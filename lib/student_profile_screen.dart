@@ -88,7 +88,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     final result = await _authService.updateStudentProfile({
       'date_of_birth': _dobController.text,
       'allergies': _allergiesController.text,
-      'hostel_name': (_hostelController.text) ?? 0,
+      'hostel': { 'name': _hostelController.text },
       'bmi': double.tryParse(_bmiController.text) ?? 0,
       'water_intake': double.tryParse(_waterIntakeController.text) ?? 0,
       'sleep_hours': double.tryParse(_sleepHoursController.text) ?? 0,

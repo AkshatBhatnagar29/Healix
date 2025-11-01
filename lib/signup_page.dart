@@ -250,7 +250,7 @@ print(_idController.text);
                     DropdownButtonFormField<String>(
                       value: _selectedRole,
                       decoration: const InputDecoration(labelText: 'Select Your Role', border: OutlineInputBorder()),
-                      items: ['Student', 'Doctor', 'Staff'].map((String value) {
+                      items: ['Student', 'Doctor', 'Staff','Caretaker'].map((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
                           child: Text(value),
