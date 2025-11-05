@@ -60,7 +60,7 @@ class DoctorProfile {
 // --- Main API Service ---
 class ApiService with ChangeNotifier {
   // Use 10.0.2.2 for Android Emulator, or your PC's IP for a real phone
-  final String _baseUrl = "http://192.168.29.196:8000/api";
+  final String _baseUrl = "https://healix-backend-1.onrender.com/api";
   String? _token;
 
   bool _isAvailable = false;
@@ -116,7 +116,7 @@ class ApiService with ChangeNotifier {
     if (_token == null) return;
 
     // Use 10.0.2.2 for Android Emulator, or your PC's IP for a real phone
-    final wsUrl = 'ws://192.168.29.196:8000/ws/sos_alerts/?token=$_token';
+    final wsUrl = 'wss://healix-backend-1.onrender.com/ws/sos_alerts/?token=$_token';
 
     try {
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));

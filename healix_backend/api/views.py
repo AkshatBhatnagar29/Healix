@@ -9,6 +9,8 @@ from .serializers import (
     CaretakerProfileSerializer, UserSerializer, MyTokenObtainPairSerializer, 
     SOSAlertSerializer
 )
+from channels.layers import get_channel_layer
+from django.views.decorators.csrf import csrf_exempt
 import os
 import random
 import requests
@@ -24,7 +26,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
 
 # --- Redis Helper ---
 def get_redis_connection():
@@ -103,12 +105,13 @@ def send_otp_email(user):
 class SignupView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-
+    permission_classes = [AllowAny]
     def perform_create(self, serializer):
         user = serializer.save(is_active=False) 
         send_otp_email(user) # Send OTP on signup
 
 class VerifyOtpView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         username = request.data.get('username')
         otp = request.data.get('otp')
@@ -131,6 +134,7 @@ class VerifyOtpView(APIView):
             return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
 
 class MyTokenObtainPairView(TokenObtainPairView):
+    permission_classes = [AllowAny]
     serializer_class = MyTokenObtainPairSerializer
 
 # --- Doctor Availability Views ---
@@ -329,3 +333,104 @@ class SOSActionView(APIView):
 
         return Response({'error': 'Invalid action.'}, status=status.HTTP_400_BAD_REQUEST)
 
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([AllowAny]) # Make it public
+def create_admin_once(request):
+    """
+    A temporary, one-time-use view to create a superuser on Render.
+    VISIT THIS URL ONCE, THEN DELETE THIS VIEW AND ITS URL.
+    """
+    try:
+        if not User.objects.filter(username='admin').exists():
+            User.objects.create_superuser('admin', 'admin@example.com', 'adminpassword123')
+            return Response(
+                {"success": "Superuser 'admin' created with password 'adminpassword123'. NOW DELETE THIS URL AND VIEW."},
+                status=status.HTTP_201_CREATED
+            )
+        else:
+            return Response(
+                {"message": "Admin user 'admin' already exists."},
+                status=status.HTTP_200_OK
+            )
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+import os, requests
+
+import requests
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.conf import settings
+
+# In api/views.py
+
+import requests
+from django.conf import settings
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+# --- This is the corrected view ---
+# In api/views.py
+
+import requests
+from django.conf import settings
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+# --- THIS IS THE CORRECT VERSION FOR OUR SETUP ---
+
+# In api/views.py
+
+import requests
+from django.conf import settings
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+# --- THIS IS THE CORRECT VERSION, MATCHING YOUR DOCS ---
+
+@api_view(['POST']) # It MUST be a POST request
+@permission_classes([IsAuthenticated])
+def get_turn_credentials(request):
+    
+    # 1. Get the new keys from settings
+    TURN_ID = settings.TURN_ID
+    TURN_API_TOKEN = settings.TURN_API_TOKEN
+
+    if not TURN_ID or not TURN_API_TOKEN:
+        return Response({"error": "TURN keys not configured on server."}, status=500)
+
+    # 2. This is the new, correct API endpoint
+    url = f"https://rtc.live.cloudflare.com/v1/turn/keys/{TURN_ID}/credentials/generate-ice-servers"
+
+    # 3. Use the new "Authorization: Bearer" header
+    headers = {
+        "Authorization": f"Bearer {TURN_API_TOKEN}",
+        "Content-Type": "application/json",
+    }
+
+    # 4. A POST request is required to set the TTL
+    body = {"ttl": 14400} # 4-hour time to live
+
+    try:
+        response = requests.post(url, headers=headers, json=body)
+        response.raise_for_status() # Raise an error for bad responses (4xx/5xx)
+        
+        data = response.json()
+        
+        # 5. Check for success and return the 'result'
+        # The new API returns the iceServers directly, not nested in a 'result' key
+        # We just return the whole successful response.
+        return Response(data)
+
+    except requests.exceptions.RequestException as e:
+        response_text = e.response.text if e.response else "No response"
+        return Response({"error": str(e), "response_text": response_text}, status=500)

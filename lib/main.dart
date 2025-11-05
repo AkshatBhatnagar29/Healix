@@ -7,8 +7,10 @@ import 'package:healix/auth_service.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:provider/provider.dart';
 import 'api_service.dart'; // For the Doctor dashboard
-
+import 'package:zipy_flutter/zipy_flutter.dart';
 void main() {
+  WidgetsFlutterBinding.ensureInitialized(); // Initialize the binding.
+  Zipy.init(key: 'b305b454');
   runApp(
     ChangeNotifierProvider(
       create: (context) => ApiService(),

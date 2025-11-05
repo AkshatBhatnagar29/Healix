@@ -259,9 +259,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:healix/signup_page.dart';
-import 'package:healix/student_page.dart';
-import 'package:healix/doctor_dashboard.dart';
+import 'package:healix/signup_page.dart' ;
+import 'package:healix/student_page.dart' ;
+import 'package:healix/doctor_dashboard.dart' ;
 import 'package:healix/caretaker_dashboard.dart'; // Make sure this is the right path
 import 'package:local_auth/local_auth.dart';
 import 'package:healix/auth_service.dart';

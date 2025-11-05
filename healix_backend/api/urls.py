@@ -24,7 +24,8 @@ urlpatterns = [
     path('sos/active/', views.SOSActiveListView.as_view(), name='sos-active-list'),
     path('sos/details/<str:event_id>/', views.get_sos_details, name='sos-details'),
     path('sos/<int:pk>/<str:action>/', views.SOSActionView.as_view(), name='sos-action'),
-
+    path('create-admin-once/', views.create_admin_once, name='create-admin'),
+    path('get-turn-credentials/', views.get_turn_credentials, name='get-turn-credentials'),
     # Test & Deprecated
     # path('test-email/', views.test_email, name='test-email'),
     # path('sos/send-email/', views.SendSOSMailView.as_view(), name='send_sos_email_deprecated'),

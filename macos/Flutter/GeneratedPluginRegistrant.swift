@@ -11,6 +11,7 @@ import flutter_webrtc
 import local_auth_darwin
 import path_provider_foundation
 import url_launcher_macos
+import zipy_flutter
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   FileSelectorPlugin.register(with: registry.registrar(forPlugin: "FileSelectorPlugin"))
@@ -19,4 +20,5 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   LocalAuthPlugin.register(with: registry.registrar(forPlugin: "LocalAuthPlugin"))
   PathProviderPlugin.register(with: registry.registrar(forPlugin: "PathProviderPlugin"))
   UrlLauncherPlugin.register(with: registry.registrar(forPlugin: "UrlLauncherPlugin"))
+  ZipyFlutterPlugin.register(with: registry.registrar(forPlugin: "ZipyFlutterPlugin"))
 }

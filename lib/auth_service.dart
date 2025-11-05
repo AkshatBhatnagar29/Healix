@@ -7,7 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 class AuthService {
   final _storage = const FlutterSecureStorage();
   // Use 10.0.2.2 for Android Emulator, or your PC's IP for a real phone
-  final String _baseUrl = "http://192.168.29.196:8000/api";
+ final String _baseUrl = "https://healix-backend-1.onrender.com/api";
 
   bool _isRefreshing = false;
 
@@ -134,10 +134,34 @@ class AuthService {
     await _storage.write(key: 'access_token', value: accessToken);
     await _storage.write(key: 'refresh_token', value: refreshToken);
   }
-
+  // =====================================================================================================
   Future<String?> getAccessToken() async {
     return await _storage.read(key: 'access_token');
   }
+  // Future<String?> getAccessToken() async {
+  //   final accessToken = await _storage.read(key: 'access_token');
+  //   if (accessToken == null) {
+  //     print("[Auth] No access token found.");
+  //     return null;
+  //   }
+  //
+  //   // 5-minute tolerance for upcoming expiry
+  //   if (JwtDecoder.isExpired(accessToken)) {
+  //     print("[Auth] Token expired. Attempting refresh...");
+  //     final refreshed = await refreshToken();
+  //     if (refreshed) {
+  //       final newToken = await _storage.read(key: 'access_token');
+  //       print("[Auth] Token refreshed successfully!");
+  //       return newToken;
+  //     } else {
+  //       print("[Auth] Token refresh failed. Logging out user.");
+  //       return null;
+  //     }
+  //   }
+  //
+  //   // Still valid
+  //   return accessToken;
+  // }
 
   Future<String?> getRefreshToken() async {
     return await _storage.read(key: 'refresh_token');
@@ -184,6 +208,89 @@ class AuthService {
       return false;
     }
   }
+  // Future<bool> refreshToken() async {
+  //   print("[DEBUG] Attempting to refresh token...");
+  //   if (_isRefreshing) return false;
+  //   _isRefreshing = true;
+  //
+  //   final refreshToken = await getRefreshToken();
+  //   if (refreshToken == null) {
+  //     _isRefreshing = false;
+  //     return false;
+  //   }
+  //
+  //   try {
+  //     final response = await http.post(
+  //       Uri.parse('$_baseUrl/token/refresh/'),
+  //       headers: {'Content-Type': 'application/json'},
+  //       body: json.encode({'refresh': refreshToken}),
+  //     );
+  //
+  //     if (response.statusCode == 200) {
+  //       final data = json.decode(response.body);
+  //
+  //       // ✅ Update both secure storage & in-memory token
+  //       final newAccessToken = data['access'];
+  //       await _storage.write(key: 'access_token', value: newAccessToken);
+  //       print("[DEBUG] Access token refreshed successfully!");
+  //
+  //       _isRefreshing = false;
+  //       return true;
+  //     } else {
+  //       print("[DEBUG] Refresh failed — deleting tokens.");
+  //       await deleteTokens();
+  //       _isRefreshing = false;
+  //       return false;
+  //     }
+  //   } catch (e) {
+  //     print("[ERROR] Exception during token refresh: $e");
+  //     _isRefreshing = false;
+  //     return false;
+  //   }
+  // }
+  // Future<bool> refreshToken() async {
+  //   if (_isRefreshing) return false;
+  //   _isRefreshing = true;
+  //
+  //   try {
+  //     final refreshToken = await _storage.read(key: 'refresh_token');
+  //     if (refreshToken == null) {
+  //       print("[Auth] No refresh token found.");
+  //       _isRefreshing = false;
+  //       return false;
+  //     }
+  //
+  //     final response = await http.post(
+  //       Uri.parse('$_baseUrl/token/refresh/'),
+  //       headers: {'Content-Type': 'application/json'},
+  //       body: jsonEncode({'refresh': refreshToken}),
+  //     );
+  //
+  //     if (response.statusCode == 200) {
+  //       final data = jsonDecode(response.body);
+  //       await _storage.write(key: 'access_token', value: data['access']);
+  //
+  //       // If backend returns a new refresh token, store it too
+  //       if (data.containsKey('refresh')) {
+  //         await _storage.write(key: 'refresh_token', value: data['refresh']);
+  //       }
+  //
+  //       print("[DEBUG] Access token refreshed successfully!");
+  //       _isRefreshing = false;
+  //       return true;
+  //     } else {
+  //       print("[Auth] Refresh token invalid. ${response.body}");
+  //       _isRefreshing = false;
+  //       return false;
+  //     }
+  //   } catch (e) {
+  //     print("[Auth] Exception during token refresh: $e");
+  //     _isRefreshing = false;
+  //     return false;
+  //   }
+  // }
+
+
 
   // --- Authenticated Request Wrapper ---
   Future<http.Response> _makeAuthenticatedRequest(
